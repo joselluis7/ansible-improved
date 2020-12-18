@@ -1,0 +1,25 @@
+---
+  - name: provisioning centos-8 server
+    #no becoming running as 
+    hosts: all
+    tasks:
+
+      - name: ensure epel-release is installed
+        yum:
+          name: epel-release
+
+      - name: ensure rsync is installed
+        yum:
+          name: rsync
+          state: latest
+
+      - name: ensure byobu is installed
+        yum:
+          name: byobu
+          state: latest
+        
+
+          
+
+
+

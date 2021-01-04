@@ -1,18 +1,14 @@
-- name: ensure epel-release is installed
-  yum:
-    name: epel-release
-
-- name: ensure rsync is installed
-  yum:
-    name: rsync
-    state: latest
-
-- name: ensure byobu is installed
-  yum:
-    name: byobu
-    state: latest
-
-- name: ensure yum-utils is there
-  yum:
-    name: yum-utils
-    state: latest
+--- 
+  - name: Insalling utils package
+    user: root
+    hosts: all
+    gather_facts: no
+    tasks:
+      - name: "installing: epel-release, rsync, byobu, yum-utils"
+        yum:
+          name:
+          - epel-release
+          - rsync
+          - byobu
+          - yum-utils
+          state: latest

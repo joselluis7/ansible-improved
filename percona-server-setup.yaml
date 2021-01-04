@@ -1,0 +1,86 @@
+---
+  - name: provisioning centos-8 server
+    #no becoming running as 
+    hosts: all
+    user: root
+    gather_facts: no
+    tasks:
+      - include_vars: basic.yaml
+
+      - name: "Check if percona-server is installed"
+        shell: rpm -qa | grep -i percona-server-server
+        #ignore_errors: yes
+        register: percona_server_is_installed
+        failed_when: percona_server_is_installed.rc != 1 and percona_server_is_installed.rc != 0
+        args:
+          warn: False
+      - debug:
+          msg: o que está ai {{ percona_server_is_installed.stdout_lines }} 
+
+      - name: install percona packages
+        yum: 
+          name: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+          disable_gpg_check: True
+          state: present
+        when: percona_server_is_installed.rc !=0
+
+      - name: disable mysql module
+        shell: dnf module disable mysql -y
+        #skipping warnings
+        args:
+          warn: False
+        when: percona_server_is_installed.rc !=0
+
+      - name: install percona server for mysql
+        yum:
+          name: Percona-Server-server-57
+          state: present
+        when: percona_server_is_installed.rc !=0
+      
+      #For access mysql via ansible
+      - name: Install python3-PyMySQL library
+        yum:
+          name: python3-PyMySQL
+          state: present
+      #Do not forget to use degub to show
+      # - debug: msg="Hello, {{ name }}!"
+      # use notify
+      - name: start mysql for the first time
+        service:
+          name: mysql
+          state: started
+          enabled: True
+        register: mysql_service
+
+      - name: "Changing root password using temporary password"
+        block:
+          - name: "Parse temporary password from mysql log, getting last one"
+            shell: "cat /var/log/mysqld.log | sed -n 's/.*temporary password is generated for root@localhost: //p' | tail -n1"
+            register: temppass
+
+          # Set root password 
+          # (mysql_user module can't be used here, got error 1862 'Your password has expired. To log in you must change it using a client that supports expired passwords.')
+          # escape single quotes in shell with '' not \'
+          - name: "Set root password (using temp password to log in)"
+            shell: 'mysql -e "SET PASSWORD = ''{{ mysql_root_password }}'';" --connect-expired-password -uroot -p"{{ temppass.stdout }}"'
+        when: mysql_service.changed
+
+      - name: ensure epel-release is installed
+        yum:
+          name: epel-release
+
+      - name: ensure rsync is installed
+        yum:
+          name: rsync
+          state: latest
+
+      - name: ensure byobu is installed
+        yum:
+          name: byobu
+          state: latest
+        
+
+          
+
+
+

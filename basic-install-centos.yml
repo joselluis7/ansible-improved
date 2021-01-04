@@ -1,0 +1,18 @@
+- name: ensure epel-release is installed
+  yum:
+    name: epel-release
+
+- name: ensure rsync is installed
+  yum:
+    name: rsync
+    state: latest
+
+- name: ensure byobu is installed
+  yum:
+    name: byobu
+    state: latest
+
+- name: ensure yum-utils is there
+  yum:
+    name: yum-utils
+    state: latest

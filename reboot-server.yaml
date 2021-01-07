@@ -1,0 +1,24 @@
+- name: reboot ther server and wait till comeback
+  hosts: server1
+  user: root
+  tasks:
+
+      - block:
+          - name: reboot the server with assync task
+            shell: reboot
+            ignore_errors: true
+            async: 1
+            poll: 0
+
+          - name: wait for server to come back after reboot
+            #wait for ssh conection
+            wait_for_connection:
+              #timeout: 600 default
+              delay: 20
+            register: reboot_result
+          - name: reboot time
+            debug:
+              msg: "The system rebooted in {{ reboot_result.elapsed }} seconds."
+          
+          - name: test connection
+            ping:

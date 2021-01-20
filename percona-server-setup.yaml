@@ -1,11 +1,10 @@
 ---
   - name: provisioning centos-8 server
-    #no becoming running as 
-    hosts: all
-    user: root
+    #put becomes if needed 
+    hosts: bind
     gather_facts: no
     tasks:
-      - include_vars: basic.yaml
+      - include_vars: basic-vars.yaml
 
       - name: "Check if percona-server is installed"
         shell: rpm -qa | grep -i percona-server-server
@@ -14,6 +13,7 @@
         failed_when: percona_server_is_installed.rc != 1 and percona_server_is_installed.rc != 0
         args:
           warn: False
+
       - debug:
           msg: o que está ai {{ percona_server_is_installed.stdout_lines }} 
 
@@ -58,26 +58,9 @@
             shell: "cat /var/log/mysqld.log | sed -n 's/.*temporary password is generated for root@localhost: //p' | tail -n1"
             register: temppass
 
-          # Set root password 
-          # (mysql_user module can't be used here, got error 1862 'Your password has expired. To log in you must change it using a client that supports expired passwords.')
-          # escape single quotes in shell with '' not \'
           - name: "Set root password (using temp password to log in)"
             shell: 'mysql -e "SET PASSWORD = ''{{ mysql_root_password }}'';" --connect-expired-password -uroot -p"{{ temppass.stdout }}"'
         when: mysql_service.changed
-
-      - name: ensure epel-release is installed
-        yum:
-          name: epel-release
-
-      - name: ensure rsync is installed
-        yum:
-          name: rsync
-          state: latest
-
-      - name: ensure byobu is installed
-        yum:
-          name: byobu
-          state: latest
         
 
           

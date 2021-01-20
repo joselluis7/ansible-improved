@@ -1,0 +1,54 @@
+--- 
+  - name: updating rhel system
+    #no becoming running as 
+    hosts: server1
+    user: root
+    gather_facts: no
+    tasks:
+
+      - name: check packages for updates
+        shell: yum list updates | awk '{ print $1 }'
+        changed_when: updates.stdout_lines | length > 0
+        args:
+          warn: false
+        register: updates
+
+      - name: display counted packages
+        debug:
+          msg: "Found {{ updates.stdout_lines | length }} to be update"
+        when: updates.stdout_lines | length > 0
+
+      - block:
+          - name: install updates using yum
+            yum:
+              name: "*"
+              state: latest
+              
+          - name: install yum-utils
+            package:
+              name: yum-utils
+              state: installed
+
+          - name: check if reboot is required
+            shell: needs-restarting -r
+            failed_when:   false
+            register: reboot_required
+            changed_when: false
+        when: updates.stdout_lines | length > 0
+
+      - block:
+        - name: reboot the server if required
+          shell: sleep 3; reboot
+          ignore_errors: true
+          changed_when: false
+          async: 1
+          poll: 0
+
+        - name: wait for server to come back after reboot
+          wait_for_connection:
+            delay: 20
+          register: reboot_result
+        - name: reboot time
+          debug:
+            msg: "The system rebooted in {{ reboot_result.elapsed }} seconds."
+        when: reboot_required.rc == 1
